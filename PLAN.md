@@ -193,3 +193,31 @@ This applies to both Credentials and Google sign-in flows. Include unit and inte
 - [x] Run package-level checks for touched apps (`front`, `api`) including test and typecheck.
 - [x] Run root validation (`bun run test`, `bun run typecheck`) if changes cross both packages.
 - [x] Confirm no regressions in auth flow, admin settings access control, and sidebar behavior.
+
+## MVP 17 - AI Module (Backend Wrapper on AI SDK)
+
+A native backend AI service layer that wraps Vercel AI SDK, abstracting provider auth and model selection for developers using this template.
+
+### Scope
+- Supported providers: OpenAI, Anthropic, Google (MVP1; extensible for future providers).
+- Supported output types: text, structured JSON (Zod or JSON Schema), image generation (OpenAI only).
+- No streaming, embeddings, audio, or tool/function calling in MVP1.
+- Configuration: environment variables only, single global timeout.
+- BYOK readiness: auth.apiKey override at instance creation (future flow hook; env-first in MVP1).
+
+### Tasks
+- [x] Add AI SDK dependencies in api package: `ai` (core) and provider packages `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`.
+- [x] Create AI module directory structure under `api/src/lib/ai/` with focused files: types, models, config, client, index.
+- [x] Implement public types: provider enum, model identifiers, client options, method payloads, and error shape.
+- [x] Implement env-based configuration loader with single global timeout (`AI_TIMEOUT_MS`) and per-provider API key resolution from environment.
+- [x] Implement provider factories that construct AI SDK provider instances (OpenAI, Anthropic, Google) with env or override API keys.
+- [x] Implement `createAiClient({ provider, model, auth? })` factory binding provider and model at creation time.
+- [x] Implement `promptText({ prompt, system? })` using AI SDK `generateText` and enforce timeout propagation.
+- [x] Implement `promptJson({ prompt, system?, schema })` using AI SDK `generateObject` with support for Zod schemas and JSON Schema via `jsonSchema` helper; normalize errors to repo error shape.
+- [x] Implement `promptImage({ prompt, ...options })` using AI SDK `generateImage`; restrict to OpenAI provider in MVP1 and throw structured error for unsupported providers.
+- [x] Add static curated model catalog `AI_MODELS_BY_PROVIDER` (raw provider identifiers only) and export `listModelsByProvider()` helper for developer discovery.
+- [x] Ensure MVP1 capability rules are enforced at runtime (no streaming/tools/embeddings/audio; image only via OpenAI).
+- [x] Add unit tests covering: config resolution and defaults, timeout propagation, schema handling (Zod and JSON Schema), provider/model binding, unsupported operation errors, and model catalog listing.
+- [x] Update `api/vitest.config.ts` coverage includes for new AI module files and keep thresholds passing.
+- [x] Update root `README.md` with AI module usage examples, environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `AI_TIMEOUT_MS`), and MVP1 limitations.
+- [x] Run package-level checks (`bun run --cwd api test`, `bun run --cwd api typecheck`, `bun run --cwd api build`) and root checks if cross-package changes emerge.

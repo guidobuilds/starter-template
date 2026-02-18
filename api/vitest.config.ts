@@ -13,7 +13,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["src/app.ts", "src/routes/users.ts", "src/routes/settings.ts"],
+      include: ["src/app.ts", "src/routes/users.ts", "src/routes/settings.ts", "src/lib/ai/**/*.ts"],
       thresholds: {
         lines: 80,
         functions: 80,
