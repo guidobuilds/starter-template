@@ -17,11 +17,14 @@ This starter template was built entirely without writing a single line of code.
 
 ```bash
 bun install
+bun run db:up
 bun run --cwd api prisma:generate
-bun run --cwd api prisma:migrate
-bun run --cwd api prisma:seed
+bun run db:migrate
+bun run db:seed
 bun run dev
 ```
+
+PostgreSQL runs in Docker with defaults: `postgres:postgres@localhost:5432/b2b_starter`.
 
 ## Test and quality checks
 
