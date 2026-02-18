@@ -1,0 +1,32 @@
+{
+  "name": "b2b-starter-template",
+  "private": true,
+  "workspaces": [
+    "api",
+    "front"
+  ],
+  "scripts": {
+    "dev": "concurrently \"bun run --cwd api dev\" \"bun run --cwd front dev\"",
+    "build": "bun run --cwd api build && bun run --cwd front build",
+    "test": "bun run --cwd api test && bun run --cwd front test",
+    "coverage": "bun run --cwd api coverage && bun run --cwd front coverage",
+    "lint": "bun run --cwd api lint && bun run --cwd front lint",
+    "typecheck": "bun run --cwd api typecheck && bun run --cwd front typecheck",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:logs": "docker compose -f docker-compose.dev.yml logs -f postgres",
+    "db:migrate": "bun run --cwd api prisma:migrate",
+    "db:seed": "bun run --cwd api prisma:seed",
+    "db:studio": "bun run --cwd api prisma studio"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@remixicon/react": "^4.9.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.4.1",
+    "tailwind-variants": "^3.2.2",
+    "tailwindcss": "^4.1.18"
+  }
+}

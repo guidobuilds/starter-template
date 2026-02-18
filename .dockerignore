@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+coverage
+.git
+.DS_Store
+*.log
+front/node_modules
+front/.next
+api/node_modules
