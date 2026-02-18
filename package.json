@@ -12,9 +12,6 @@
     "coverage": "bun run --cwd api coverage && bun run --cwd front coverage",
     "lint": "bun run --cwd api lint && bun run --cwd front lint",
     "typecheck": "bun run --cwd api typecheck && bun run --cwd front typecheck",
-    "db:up": "docker compose -f docker-compose.dev.yml up -d",
-    "db:down": "docker compose -f docker-compose.dev.yml down",
-    "db:logs": "docker compose -f docker-compose.dev.yml logs -f postgres",
     "db:migrate": "bun run --cwd api prisma:migrate",
     "db:seed": "bun run --cwd api prisma:seed",
     "db:studio": "bun run --cwd api prisma studio"
