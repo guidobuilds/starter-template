@@ -1,6 +1,4 @@
 "use client"
-import { Divider } from "@/components/Divider"
-import { Input } from "@/components/Input"
 import {
   Sidebar,
   SidebarContent,
@@ -50,7 +48,7 @@ const navigation: NavItem[] = [
   },
   {
     name: "Settings",
-    href: "/admin/settings/general",
+    href: "/admin/settings",
     icon: Settings,
     adminOnly: true,
     children: [
@@ -63,9 +61,11 @@ const navigation: NavItem[] = [
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   instanceName?: string | null
   isAdmin?: boolean
+  userName?: string | null
+  userEmail?: string | null
 }
 
-export function AppSidebar({ instanceName, isAdmin = false, ...props }: AppSidebarProps) {
+export function AppSidebar({ instanceName, isAdmin = false, userName, userEmail, ...props }: AppSidebarProps) {
   const pathname = usePathname()
 
   const [openMenus, setOpenMenus] = React.useState<string[]>(
@@ -110,18 +110,6 @@ export function AppSidebar({ instanceName, isAdmin = false, ...props }: AppSideb
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <Input
-              type="search"
-              placeholder="Search items..."
-              className="sm:[&>input]:py-1.5"
-            />
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <div className="px-3">
-          <Divider className="my-0 py-0" />
-        </div>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -184,7 +172,7 @@ export function AppSidebar({ instanceName, isAdmin = false, ...props }: AppSideb
       </SidebarContent>
       <SidebarFooter>
         <div className="border-t border-gray-200 dark:border-gray-800" />
-        <UserProfile />
+        <UserProfile name={userName} email={userEmail} />
       </SidebarFooter>
     </Sidebar>
   )

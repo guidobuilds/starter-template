@@ -2,6 +2,7 @@ import { cors } from "@elysiajs/cors"
 import { Elysia } from "elysia"
 import { usersRoutes } from "@/routes/users"
 import { settingsRoutes } from "@/routes/settings"
+import { profileRoutes } from "@/routes/profile"
 
 export const app = new Elysia()
   .use(
@@ -27,6 +28,6 @@ export const app = new Elysia()
     }
   })
   .get("/health", () => ({ status: "ok" }))
-  .group("/v1", (v1) => v1.use(usersRoutes).use(settingsRoutes))
+  .group("/v1", (v1) => v1.use(usersRoutes).use(settingsRoutes).use(profileRoutes))
 
 export type App = typeof app

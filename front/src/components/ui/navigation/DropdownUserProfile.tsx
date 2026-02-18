@@ -14,19 +14,26 @@ import {
   DropdownMenuSubMenuTrigger,
   DropdownMenuTrigger,
 } from "@/components/DropdownMenu"
-import { ArrowUpRight, Monitor, Moon, Sun } from "lucide-react"
+import { ArrowUpRight, Monitor, Moon, Sun, User } from "lucide-react"
 import { useTheme } from "next-themes"
 import { signOut } from "next-auth/react"
+import Link from "next/link"
 import * as React from "react"
 
 export type DropdownUserProfileProps = {
   children: React.ReactNode
   align?: "center" | "start" | "end"
+  email?: string
+  name?: string
+  initials?: string
 }
 
 export function DropdownUserProfile({
   children,
   align = "start",
+  email = "user@example.com",
+  name = "User",
+  initials = "U",
 }: DropdownUserProfileProps) {
   const [mounted, setMounted] = React.useState(false)
   const { theme, setTheme } = useTheme()
@@ -45,7 +52,16 @@ export function DropdownUserProfile({
           align={align}
           className="sm:min-w-[calc(var(--radix-dropdown-menu-trigger-width))]!"
         >
-          <DropdownMenuLabel>emma.stone@acme.com</DropdownMenuLabel>
+          <DropdownMenuLabel>{email}</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuItem>
+              <Link href="/profile" className="flex items-center gap-2">
+                <User className="size-4 shrink-0" aria-hidden="true" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuSubMenu>
               <DropdownMenuSubMenuTrigger>Theme</DropdownMenuSubMenuTrigger>

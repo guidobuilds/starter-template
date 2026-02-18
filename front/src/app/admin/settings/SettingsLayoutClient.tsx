@@ -12,6 +12,11 @@ const tabs = [
 
 export function SettingsLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const isAuthRoute = pathname.startsWith("/admin/settings/auth")
+
+  if (isAuthRoute) {
+    return <div className="p-4 sm:p-6">{children}</div>
+  }
 
   return (
     <div className="p-4 sm:p-6">

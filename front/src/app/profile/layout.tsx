@@ -28,7 +28,7 @@ async function getInstanceName(): Promise<string | null> {
   return null
 }
 
-export default async function QuotesLayout({
+export default async function ProfileLayout({
   children,
 }: {
   children: React.ReactNode

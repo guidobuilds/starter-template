@@ -15,12 +15,12 @@ export function AuthSettingsLayoutClient({ children }: { children: React.ReactNo
 
   return (
     <>
-      <h3 className="font-semibold text-gray-900 dark:text-gray-100">Authentication</h3>
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Authentication Settings</h1>
       <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
         Configure password policies and OAuth providers.
       </p>
 
-      <TabNavigation className="mt-4 gap-x-4">
+      <TabNavigation className="mt-6 gap-x-4">
         {tabs.map((tab) => (
           <TabNavigationLink key={tab.name} asChild active={pathname === tab.href}>
             <Link href={tab.href}>{tab.name}</Link>

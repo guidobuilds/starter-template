@@ -48,7 +48,12 @@ export default async function AdminLayout({
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar instanceName={instanceName} isAdmin={true} />
+      <AppSidebar
+        instanceName={instanceName}
+        isAdmin={true}
+        userName={session.user.name}
+        userEmail={session.user.email}
+      />
       <div className="w-full">
         <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-950">
           <SidebarTrigger className="-ml-1" />

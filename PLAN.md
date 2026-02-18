@@ -143,3 +143,53 @@ This applies to both Credentials and Google sign-in flows. Include unit and inte
 - [x] Update frontend API client tests in `front/src/lib/api/users.test.ts` for query param propagation and pagination/search responses.
 - [x] Update Users UI tests in `front/src/components/admin/UsersTable.test.tsx` for modal-based create/edit flows, three-dots action menu behavior, automatic refresh after mutations, pagination + page size + API-backed search interactions.
 - [x] Run targeted and package validation commands: front tests, api tests, typecheck for both packages.
+
+## MVP 13 - Settings Navigation Simplification (No Double Navigation)
+
+- [x] Keep `/admin/settings` as a redirect route to `/admin/settings/general`.
+- [x] Update sidebar Settings link targets and active-state logic to align with the redirect entrypoint.
+- [x] Refactor settings layouts so only one navigation context is visible at a time:
+  - `/admin/settings/general` shows only General context/content.
+  - `/admin/settings/auth/*` shows only Authentication context/content.
+- [x] Remove the double-navigation state where top-level Settings options and Authentication sub-tabs appear simultaneously.
+- [x] Ensure auth settings navigation remains usable within Authentication context (Basic/Google only).
+- [x] Validate route behavior and active states for:
+  - `/admin/settings`
+  - `/admin/settings/general`
+  - `/admin/settings/auth/basic`
+  - `/admin/settings/auth/google`
+
+## MVP 14 - Sidebar Cleanup (Remove Search Input)
+
+- [x] Remove the sidebar search input UI from the main navigation sidebar.
+- [x] Remove now-unused imports and spacing/divider logic related to search to keep layout consistent.
+- [x] Verify desktop and mobile sidebar render correctly after removal.
+
+## MVP 15 - User Profile Area (Accessible from Sidebar Bottom Item)
+
+- [x] Add a dedicated profile page accessible from the existing bottom sidebar user area.
+- [x] Add a "Profile" action in the bottom user menu that routes to the new profile page.
+- [x] Build profile UI to match the reference style direction (header + tabbed/settings-like account section + email/password form blocks).
+- [x] Populate profile defaults from authenticated user/session data and preserve existing theme/sign-out actions.
+- [x] Implement profile APIs via BFF pattern (frontend route handlers), avoiding direct client-to-backend calls.
+- [x] Add backend support for authenticated self-service profile updates:
+  - Read current profile details
+  - Update account details (name/email)
+  - Update password with current-password verification and policy checks
+- [x] Keep validation/error response conventions aligned with existing API patterns (`{ code, message, details? }`).
+- [x] Ensure authorization boundaries:
+  - Authenticated users can only manage their own profile
+  - No admin-only restriction for basic profile self-management
+- [x] Add/update tests for:
+  - Profile page rendering and interaction states
+  - BFF profile route handlers
+  - Backend profile routes and validation/error scenarios
+  - Navigation entry from sidebar bottom item
+
+## MVP 16 - Validation and Regression Checks
+
+- [x] Run targeted frontend tests for settings navigation, sidebar, and profile changes.
+- [x] Run targeted backend tests for profile route additions.
+- [x] Run package-level checks for touched apps (`front`, `api`) including test and typecheck.
+- [x] Run root validation (`bun run test`, `bun run typecheck`) if changes cross both packages.
+- [x] Confirm no regressions in auth flow, admin settings access control, and sidebar behavior.
