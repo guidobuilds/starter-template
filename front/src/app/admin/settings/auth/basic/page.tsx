@@ -1,5 +1,5 @@
-import { BasicAuthSettingsForm } from "@/components/admin/settings/BasicAuthSettingsForm"
+import { redirect } from "next/navigation"
 
 export default function BasicAuthSettingsPage() {
-  return <BasicAuthSettingsForm />
+  redirect("/admin/settings/auth")
 }

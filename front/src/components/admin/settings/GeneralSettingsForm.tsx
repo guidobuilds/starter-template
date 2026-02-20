@@ -1,82 +1,152 @@
 "use client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as React from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+
 import { Button } from "@/components/Button"
 import { Input } from "@/components/Input"
-import { getSettings, updateGeneralSettings } from "@/lib/api/settings"
-import React from "react"
+import {
+  SettingsField,
+  SettingsSection,
+} from "@/components/admin/settings/SettingsSection"
+import {
+  useRegisterUnsavedSection,
+} from "@/components/admin/settings/UnsavedChangesContext"
+import { useToast } from "@/components/ToastContext"
+import {
+  type ApiErrorShape,
+  getSettings,
+  updateGeneralSettings,
+} from "@/lib/api/settings"
+
+const generalSettingsSchema = z.object({
+  instanceName: z
+    .string()
+    .trim()
+    .max(100, "Instance name must be at most 100 characters")
+    .optional()
+    .or(z.literal("")),
+})
+
+type GeneralSettingsFormValues = z.infer<typeof generalSettingsSchema>
+
+function getFieldErrors(error: unknown) {
+  const details = (error as ApiErrorShape | undefined)?.details as
+    | { fieldErrors?: Record<string, string[] | undefined> }
+    | undefined
+  return details?.fieldErrors ?? {}
+}
 
 export function GeneralSettingsForm() {
-  const [instanceName, setInstanceName] = React.useState("")
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [success, setSuccess] = React.useState(false)
+  const { toast } = useToast()
+
+  const form = useForm<GeneralSettingsFormValues>({
+    resolver: zodResolver(generalSettingsSchema),
+    defaultValues: {
+      instanceName: "",
+    },
+  })
+
+  useRegisterUnsavedSection("general-instance", form.formState.isDirty)
 
   React.useEffect(() => {
     getSettings()
       .then((settings) => {
-        setInstanceName(settings.instanceName ?? "")
+        form.reset({
+          instanceName: settings.instanceName ?? "",
+        })
+      })
+      .catch((error: unknown) => {
+        toast({
+          variant: "destructive",
+          title: "Failed to load settings",
+          description:
+            (error as ApiErrorShape | undefined)?.message ??
+            "Try refreshing the page.",
+        })
+      })
+      .finally(() => {
         setLoading(false)
       })
-      .catch(() => {
-        setError("Failed to load settings")
-        setLoading(false)
-      })
-  }, [])
+  }, [form, toast])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(false)
+  const onSubmit = async (values: GeneralSettingsFormValues) => {
     setSaving(true)
-
     try {
-      await updateGeneralSettings({ instanceName: instanceName.trim() || undefined })
-      setSuccess(true)
-    } catch {
-      setError("Failed to save settings")
+      await updateGeneralSettings({
+        instanceName: values.instanceName?.trim() || undefined,
+      })
+      form.reset(values)
+      toast({
+        variant: "success",
+        title: "General settings saved",
+      })
+    } catch (error: unknown) {
+      const fieldErrors = getFieldErrors(error)
+      const instanceNameError = fieldErrors.instanceName?.[0]
+      if (instanceNameError) {
+        form.setError("instanceName", { message: instanceNameError })
+      }
+      toast({
+        variant: "destructive",
+        title: "Failed to save settings",
+        description:
+          (error as ApiErrorShape | undefined)?.message ??
+          "Check your values and try again.",
+      })
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) {
-    return <div className="text-sm text-gray-500">Loading...</div>
-  }
-
   return (
-    <form onSubmit={handleSubmit}>
-      <h3 className="font-semibold text-gray-900 dark:text-gray-100">Instance settings</h3>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-        Configure the application name displayed to users.
-      </p>
-
-      <div className="mt-6 space-y-4">
-        <div className="max-w-md">
-          <label htmlFor="instanceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Instance name
-          </label>
-          <Input
-            id="instanceName"
-            value={instanceName}
-            onChange={(e) => setInstanceName(e.target.value)}
-            placeholder="My Application"
-            className="mt-1"
-          />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            This name appears in the sidebar header and page title.
-          </p>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <SettingsSection
+        id="instance-settings"
+        title="Instance settings"
+        description="Configure the application name displayed to users."
+        loading={loading}
+      >
+        <div className="space-y-4">
+          <div className="max-w-md">
+            <SettingsField
+              htmlFor="instanceName"
+              label="Instance name"
+              description="This name appears in the sidebar header and page title."
+            >
+              <Input
+                id="instanceName"
+                placeholder="My Application"
+                className="mt-1"
+                hasError={!!form.formState.errors.instanceName}
+                {...form.register("instanceName")}
+              />
+            </SettingsField>
+            {form.formState.errors.instanceName?.message && (
+              <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">
+                {form.formState.errors.instanceName.message}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      </SettingsSection>
 
-      {error && <p className="mt-4 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
-      {success && <p className="mt-4 text-sm text-green-600 dark:text-green-400">Settings saved.</p>}
-
-      <div className="mt-6 flex items-center gap-3">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save settings"}
-        </Button>
-      </div>
+      {!loading && (
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <Button
+            type="submit"
+            isLoading={saving}
+            loadingText="Saving..."
+            disabled={!form.formState.isDirty || saving}
+          >
+            Save settings
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

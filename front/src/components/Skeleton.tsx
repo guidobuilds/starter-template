@@ -1,12 +1,13 @@
 import { cx } from "@/lib/utils"
+import type { HTMLAttributes } from "react"
 
 function Skeleton({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cx("bg-muted animate-pulse rounded-md", className)}
+      className={cx("animate-pulse rounded-md bg-gray-200 dark:bg-gray-800", className)}
       {...props}
     />
   )

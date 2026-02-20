@@ -1,5 +1,5 @@
-import { GoogleAuthSettingsForm } from "@/components/admin/settings/GoogleAuthSettingsForm"
+import { redirect } from "next/navigation"
 
 export default function GoogleAuthSettingsPage() {
-  return <GoogleAuthSettingsForm />
+  redirect("/admin/settings/auth")
 }

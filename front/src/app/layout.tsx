@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { ThemeProvider } from "next-themes"
 import localFont from "next/font/local"
+import { ToastContextProvider } from "@/components/ToastContext"
 import "./globals.css"
 import { siteConfig } from "./siteConfig"
 
@@ -89,7 +90,7 @@ export default async function RootLayout({
           disableTransitionOnChange
           attribute="class"
         >
-          {children}
+          <ToastContextProvider>{children}</ToastContextProvider>
         </ThemeProvider>
       </body>
     </html>

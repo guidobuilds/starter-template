@@ -34,12 +34,68 @@ export type GoogleAuthSettingsPayload = {
   googleClientSecret?: string | null
 }
 
+export type ApiErrorShape = {
+  code: string
+  message: string
+  details?: unknown
+  status?: number
+}
+
+export class ApiClientError extends Error implements ApiErrorShape {
+  code: string
+  details?: unknown
+  status?: number
+
+  constructor({
+    code,
+    message,
+    details,
+    status,
+  }: {
+    code: string
+    message: string
+    details?: unknown
+    status?: number
+  }) {
+    super(message)
+    this.name = "ApiClientError"
+    this.code = code
+    this.details = details
+    this.status = status
+  }
+}
+
+async function parseApiError(
+  response: Response,
+  fallbackMessage: string,
+): Promise<ApiClientError> {
+  try {
+    const payload = (await response.json()) as {
+      code?: string
+      message?: string
+      details?: unknown
+    }
+    return new ApiClientError({
+      code: payload.code ?? "UNKNOWN_ERROR",
+      message: payload.message ?? fallbackMessage,
+      details: payload.details,
+      status: response.status,
+    })
+  } catch {
+    return new ApiClientError({
+      code: "UNKNOWN_ERROR",
+      message: fallbackMessage,
+      status: response.status,
+    })
+  }
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const response = await fetch("/api/settings", {
     cache: "no-store",
   })
   if (!response.ok) {
-    throw new Error("Failed to fetch settings")
+    throw await parseApiError(response, "Failed to fetch settings")
   }
   return response.json()
 }
@@ -53,7 +109,7 @@ export async function updateGeneralSettings(
     body: JSON.stringify(payload),
   })
   if (!response.ok) {
-    throw new Error("Failed to update general settings")
+    throw await parseApiError(response, "Failed to update general settings")
   }
   return response.json()
 }
@@ -75,7 +131,7 @@ export async function updateBasicAuthSettings(
     body: JSON.stringify(payload),
   })
   if (!response.ok) {
-    throw new Error("Failed to update basic auth settings")
+    throw await parseApiError(response, "Failed to update basic auth settings")
   }
   return response.json()
 }
@@ -89,7 +145,7 @@ export async function updateGoogleAuthSettings(
     body: JSON.stringify(payload),
   })
   if (!response.ok) {
-    throw new Error("Failed to update google auth settings")
+    throw await parseApiError(response, "Failed to update google auth settings")
   }
   return response.json()
 }
@@ -103,7 +159,7 @@ export async function updateWorkspaceSettings(payload: {
     body: JSON.stringify(payload),
   })
   if (!response.ok) {
-    throw new Error("Failed to update workspace settings")
+    throw await parseApiError(response, "Failed to update workspace settings")
   }
   return response.json()
 }

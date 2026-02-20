@@ -1,74 +1,139 @@
 "use client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as React from "react"
+import { Controller, useForm } from "react-hook-form"
+import { z } from "zod"
+
 import { Button } from "@/components/Button"
-import { getSettings, updateWorkspaceSettings } from "@/lib/api/settings"
-import React from "react"
+import { Label } from "@/components/Label"
+import { Switch } from "@/components/Switch"
+import { useToast } from "@/components/ToastContext"
+import {
+  SettingsSection,
+} from "@/components/admin/settings/SettingsSection"
+import {
+  useRegisterUnsavedSection,
+} from "@/components/admin/settings/UnsavedChangesContext"
+import {
+  type ApiErrorShape,
+  getSettings,
+  updateWorkspaceSettings,
+} from "@/lib/api/settings"
+
+const workspaceSchema = z.object({
+  workspacesEnabled: z.boolean(),
+})
+
+type WorkspaceFormValues = z.infer<typeof workspaceSchema>
 
 export function WorkspaceSettingsForm() {
-  const [workspacesEnabled, setWorkspacesEnabled] = React.useState(true)
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [success, setSuccess] = React.useState(false)
+  const { toast } = useToast()
+
+  const form = useForm<WorkspaceFormValues>({
+    resolver: zodResolver(workspaceSchema),
+    defaultValues: {
+      workspacesEnabled: true,
+    },
+  })
+
+  useRegisterUnsavedSection("workspace-settings", form.formState.isDirty)
 
   React.useEffect(() => {
     getSettings()
       .then((settings) => {
-        setWorkspacesEnabled(settings.workspacesEnabled ?? true)
+        form.reset({
+          workspacesEnabled: settings.workspacesEnabled ?? true,
+        })
+      })
+      .catch((error: unknown) => {
+        toast({
+          variant: "destructive",
+          title: "Failed to load workspace settings",
+          description:
+            (error as ApiErrorShape | undefined)?.message ??
+            "Try refreshing the page.",
+        })
+      })
+      .finally(() => {
         setLoading(false)
       })
-      .catch(() => {
-        setError("Failed to load settings")
-        setLoading(false)
-      })
-  }, [])
+  }, [form, toast])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(false)
+  const onSubmit = async (values: WorkspaceFormValues) => {
     setSaving(true)
-
     try {
-      await updateWorkspaceSettings({ workspacesEnabled })
-      setSuccess(true)
-    } catch {
-      setError("Failed to save settings")
+      await updateWorkspaceSettings({
+        workspacesEnabled: values.workspacesEnabled,
+      })
+      form.reset(values)
+      toast({
+        variant: "success",
+        title: "Workspace settings saved",
+      })
+    } catch (error: unknown) {
+      toast({
+        variant: "destructive",
+        title: "Failed to save workspace settings",
+        description:
+          (error as ApiErrorShape | undefined)?.message ??
+          "Check your values and try again.",
+      })
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) {
-    return <div className="text-sm text-gray-500">Loading...</div>
-  }
-
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-4">
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-          <input
-            type="checkbox"
-            checked={workspacesEnabled}
-            onChange={(e) => setWorkspacesEnabled(e.target.checked)}
-            className="h-4 w-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          Enable Workspaces feature
-        </label>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          When enabled, users can create and manage workspaces and invite collaborators. When
-          disabled, existing workspaces remain but new ones cannot be created.
-        </p>
-      </div>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <SettingsSection
+        id="workspace-settings"
+        title="Workspace settings"
+        description="Control workspace capabilities for this instance."
+        loading={loading}
+      >
+        <div className="space-y-4">
+          <div className="rounded-md border border-gray-200 p-4 dark:border-gray-800">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="workspacesEnabled" className="font-medium">
+                  Enable Workspaces feature
+                </Label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Users can create and manage workspaces and invite collaborators.
+                </p>
+              </div>
+              <Controller
+                name="workspacesEnabled"
+                control={form.control}
+                render={({ field }) => (
+                  <Switch
+                    id="workspacesEnabled"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={saving}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      </SettingsSection>
 
-      {error && <p className="mt-4 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
-      {success && <p className="mt-4 text-sm text-green-600 dark:text-green-400">Settings saved.</p>}
-
-      <div className="mt-6 flex items-center gap-3">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save settings"}
-        </Button>
-      </div>
+      {!loading && (
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <Button
+            type="submit"
+            isLoading={saving}
+            loadingText="Saving..."
+            disabled={!form.formState.isDirty || saving}
+          >
+            Save settings
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

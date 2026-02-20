@@ -9,7 +9,7 @@ const generalSettingsSchema = z.object({
 })
 
 const basicAuthSettingsSchema = z.object({
-  passwordMinLength: z.int().min(6).max(128).optional(),
+  passwordMinLength: z.int().min(1).max(128).optional(),
   requireSpecial: z.boolean().optional(),
   requireNumber: z.boolean().optional(),
   requireUppercase: z.boolean().optional(),
