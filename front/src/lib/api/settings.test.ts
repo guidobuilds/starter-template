@@ -51,12 +51,13 @@ describe("settings api client", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ googleClientId: "client-id", googleClientSecret: "***", updatedAt: new Date().toISOString() }),
+        json: async () => ({ googleAuthEnabled: true, googleConfigured: true, updatedAt: new Date().toISOString() }),
       }),
     )
 
-    const result = await updateGoogleAuthSettings({ googleClientId: "client-id" })
-    expect(result.googleClientId).toBe("client-id")
+    const result = await updateGoogleAuthSettings({ googleAuthEnabled: true, googleClientId: "client-id" })
+    expect(result.googleAuthEnabled).toBe(true)
+    expect(result.googleConfigured).toBe(true)
   })
 
   it("throws on fetch failure", async () => {

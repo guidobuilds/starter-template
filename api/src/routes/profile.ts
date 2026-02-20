@@ -79,6 +79,7 @@ export const profileRoutes = new Elysia({ prefix: "/profile" })
         name: true,
         email: true,
         image: true,
+        authMethod: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -98,20 +99,26 @@ export const profileRoutes = new Elysia({ prefix: "/profile" })
       return errorResponse("VALIDATION_ERROR", "Invalid request body", parsed.error.flatten())
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: { authMethod: true },
+    })
+
+    if (!user) {
+      set.status = 404
+      return errorResponse("NOT_FOUND", "User not found")
+    }
+
     const { name, email } = parsed.data
 
-    if (email) {
-      const existing = await prisma.user.findFirst({
-        where: {
-          email,
-          NOT: { id: params.id },
-        },
-      })
+    if (user.authMethod === "GOOGLE" && name !== undefined) {
+      set.status = 403
+      return errorResponse("FORBIDDEN", "Google users cannot change their display name")
+    }
 
-      if (existing) {
-        set.status = 409
-        return errorResponse("EMAIL_CONFLICT", "Email already in use")
-      }
+    if (email !== undefined) {
+      set.status = 403
+      return errorResponse("FORBIDDEN", "Email changes are not allowed")
     }
 
     try {
@@ -119,13 +126,13 @@ export const profileRoutes = new Elysia({ prefix: "/profile" })
         where: { id: params.id },
         data: {
           ...(name !== undefined && { name }),
-          ...(email !== undefined && { email }),
         },
         select: {
           id: true,
           name: true,
           email: true,
           image: true,
+          authMethod: true,
           updatedAt: true,
         },
       })
@@ -147,12 +154,22 @@ export const profileRoutes = new Elysia({ prefix: "/profile" })
 
     const user = await prisma.user.findUnique({
       where: { id: params.id },
-      select: { passwordHash: true },
+      select: { passwordHash: true, authMethod: true },
     })
 
-    if (!user || !user.passwordHash) {
+    if (!user) {
       set.status = 404
-      return errorResponse("NOT_FOUND", "User not found or no password set")
+      return errorResponse("NOT_FOUND", "User not found")
+    }
+
+    if (user.authMethod === "GOOGLE") {
+      set.status = 403
+      return errorResponse("FORBIDDEN", "Google users cannot change their password")
+    }
+
+    if (!user.passwordHash) {
+      set.status = 400
+      return errorResponse("NO_PASSWORD", "User does not have a password set")
     }
 
     const validPassword = await bcrypt.compare(currentPassword, user.passwordHash)

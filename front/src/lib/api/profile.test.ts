@@ -13,7 +13,7 @@ describe("profile API client", () => {
   describe("getProfile", () => {
     it("returns profile on success", async () => {
       vi.mocked(fetch).mockResolvedValue(
-        new Response(JSON.stringify({ id: "1", name: "Test", email: "test@example.com", image: null, createdAt: "", updatedAt: "" }), {
+        new Response(JSON.stringify({ id: "1", name: "Test", email: "test@example.com", image: null, authMethod: "BASIC", createdAt: "", updatedAt: "" }), {
           status: 200,
         })
       )
@@ -25,6 +25,7 @@ describe("profile API client", () => {
         name: "Test",
         email: "test@example.com",
         image: null,
+        authMethod: "BASIC",
         createdAt: "",
         updatedAt: "",
       })
@@ -40,7 +41,7 @@ describe("profile API client", () => {
   describe("updateProfile", () => {
     it("returns updated profile on success", async () => {
       vi.mocked(fetch).mockResolvedValue(
-        new Response(JSON.stringify({ id: "1", name: "Updated", email: "test@example.com", image: null, updatedAt: "" }), {
+        new Response(JSON.stringify({ id: "1", name: "Updated", email: "test@example.com", image: null, authMethod: "BASIC", updatedAt: "" }), {
           status: 200,
         })
       )
@@ -52,10 +53,10 @@ describe("profile API client", () => {
 
     it("throws with error message on failure", async () => {
       vi.mocked(fetch).mockResolvedValue(
-        new Response(JSON.stringify({ message: "Email already in use" }), { status: 409 })
+        new Response(JSON.stringify({ message: "Google users cannot change their display name" }), { status: 403 })
       )
 
-      await expect(updateProfile({ email: "existing@example.com" })).rejects.toThrow("Email already in use")
+      await expect(updateProfile({ name: "Updated" })).rejects.toThrow("Google users cannot change their display name")
     })
   })
 

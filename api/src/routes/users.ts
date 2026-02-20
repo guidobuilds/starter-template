@@ -38,13 +38,22 @@ export const usersRoutes = new Elysia({ prefix: "/users" })
     }
 
     try {
-      const created = await prisma.user.create({
-        data: {
-          name: parsed.data.name,
-          email: parsed.data.email,
-          status: (parsed.data.status as UserStatus | undefined) ?? UserStatus.ENABLED,
-          admin: parsed.data.admin ?? false,
-        },
+      const created = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name: parsed.data.name,
+            email: parsed.data.email,
+            status: (parsed.data.status as UserStatus | undefined) ?? UserStatus.ENABLED,
+            admin: parsed.data.admin ?? false,
+          },
+        })
+        const ws = await tx.workspace.create({
+          data: { name: `${user.name}'s workspace`, ownerId: user.id, isDefault: true },
+        })
+        await tx.workspaceMember.create({
+          data: { workspaceId: ws.id, userId: user.id },
+        })
+        return user
       })
       set.status = 201
       return created

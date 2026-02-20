@@ -31,6 +31,7 @@ const mockUser = {
   passwordHash: null,
   status: "ENABLED" as const,
   admin: false,
+  authMethod: "BASIC" as const,
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
 }
@@ -70,7 +71,13 @@ describe("Profile Routes", () => {
 
   describe("PATCH /v1/profile/:id", () => {
     it("updates user name", async () => {
-      vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+      vi.mocked(prisma.user.findUnique)
+        .mockResolvedValueOnce({ authMethod: "BASIC" })
+        .mockResolvedValueOnce({
+          ...mockUser,
+          name: "Updated Name",
+          updatedAt: new Date("2024-01-02"),
+        })
       vi.mocked(prisma.user.update).mockResolvedValue({
         ...mockUser,
         name: "Updated Name",
@@ -92,26 +99,39 @@ describe("Profile Routes", () => {
       })
     })
 
-    it("returns 409 for duplicate email", async () => {
-      vi.mocked(prisma.user.findFirst).mockResolvedValue({
-        ...mockUser,
-        id: "other-user",
-        name: "Other",
-        email: "existing@example.com",
-      })
+    it("returns 403 for email changes", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ authMethod: "BASIC" })
 
       const response = await app
         .handle(
           new Request("http://localhost/v1/profile/user-1", {
             method: "PATCH",
             headers: authHeaders({ "content-type": "application/json" }),
-            body: JSON.stringify({ email: "existing@example.com" }),
+            body: JSON.stringify({ email: "newemail@example.com" }),
           })
         )
         .then((r) => r.json())
 
       expect(response).toMatchObject({
-        code: "EMAIL_CONFLICT",
+        code: "FORBIDDEN",
+      })
+    })
+
+    it("returns 403 for name changes by Google users", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ authMethod: "GOOGLE" })
+
+      const response = await app
+        .handle(
+          new Request("http://localhost/v1/profile/user-1", {
+            method: "PATCH",
+            headers: authHeaders({ "content-type": "application/json" }),
+            body: JSON.stringify({ name: "Updated Name" }),
+          })
+        )
+        .then((r) => r.json())
+
+      expect(response).toMatchObject({
+        code: "FORBIDDEN",
       })
     })
   })

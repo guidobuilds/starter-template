@@ -221,3 +221,130 @@ A native backend AI service layer that wraps Vercel AI SDK, abstracting provider
 - [x] Update `api/vitest.config.ts` coverage includes for new AI module files and keep thresholds passing.
 - [x] Update root `README.md` with AI module usage examples, environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `AI_TIMEOUT_MS`), and MVP1 limitations.
 - [x] Run package-level checks (`bun run --cwd api test`, `bun run --cwd api typecheck`, `bun run --cwd api build`) and root checks if cross-package changes emerge.
+
+## MVP 18 - Auth Settings Data Model Upgrade
+
+Add enable/disable flags and encrypted credential storage for authentication methods.
+
+### Tasks
+- [x] Add `basicAuthEnabled` (Boolean, default true) to `AppSettings` model.
+- [x] Add `googleAuthEnabled` (Boolean, default false) to `AppSettings` model.
+- [x] Add `googleClientIdEncrypted` (String?) and `googleClientSecretEncrypted` (String?) to replace plaintext fields.
+- [x] Add `googleCredentialsIv` (String?) for encryption initialization vector.
+- [x] Add `authMethod` enum (BASIC, GOOGLE) and `authMethod` field to `User` model to track registration origin.
+- [x] Create and apply Prisma migration in `api/prisma`.
+- [x] Mirror schema changes to `front/prisma/schema.prisma`.
+- [x] Add encryption/decryption utility using `AUTH_ENCRYPTION_KEY` env var (AES-256-GCM).
+- [x] Update API settings types to include new fields.
+- [x] Update settings routes to handle encrypted Google credentials.
+- [x] Add tests for encryption/decryption utility.
+- [x] Add tests for updated settings routes.
+
+## MVP 19 - Signup Access Rules (Basic Auth)
+
+Implement dedicated `/signup` page with Basic Auth enable/disable gating.
+
+### Tasks
+- [x] Create `/signup` page at `front/src/app/signup/page.tsx` with registration form.
+- [x] Update middleware to allow unauthenticated access to `/signup`.
+- [x] Server-side gate: redirect `/signup` to `/login` when `basicAuthEnabled=false`.
+- [x] Update registration API to reject requests when `basicAuthEnabled=false`.
+- [x] Ensure password policy enforcement uses existing settings logic.
+- [x] Update `AuthCard` on `/login` to remove inline register toggle (use `/signup` instead).
+- [x] Add link from `/login` to `/signup` when Basic Auth enabled.
+- [x] Add tests for `/signup` access and redirect behavior.
+- [x] Add tests for registration API gating.
+
+## MVP 20 - Google Auth Visibility + Runtime Gating
+
+Conditionally show Google login option and enforce runtime gating.
+
+### Tasks
+- [x] Create public auth config API endpoint `GET /api/auth/config` (returns `basicAuthEnabled`, `googleAuthEnabled`, `googleConfigured`).
+- [x] Update `AuthCard` to fetch auth config and conditionally show Google button.
+- [x] Update `AuthCard` to show Basic Auth form only when `basicAuthEnabled=true`.
+- [x] Update NextAuth `signIn` callback to reject Google sign-in when disabled or not configured.
+- [x] Update NextAuth to use DB-stored Google credentials (decrypted) when available, with env fallback.
+- [x] Add tests for auth config API.
+- [x] Add tests for AuthCard conditional rendering.
+- [x] Add tests for NextAuth signIn callback gating.
+
+## MVP 21 - Google Auth Settings UX Improvements
+
+Enhance Google settings page with enable/disable toggle, encrypted storage, and URL display.
+
+### Tasks
+- [x] Add enable/disable toggle switch to `GoogleAuthSettingsForm`.
+- [x] Implement credential encryption on save (client ID and secret).
+- [x] Show "Configured" status indicator when credentials exist.
+- [x] Hide actual credential values in UI; show masked placeholder.
+- [x] Add "Change" button to unlock credential editing when configured.
+- [x] Display required Allow URL and Redirect URL for Google OAuth setup.
+- [x] Update `updateGoogleAuthSettings` to handle encryption.
+- [x] Update settings GET to return `isConfigured` boolean instead of credential values.
+- [x] Add tests for Google settings form states.
+- [x] Add tests for credential encryption flow.
+
+## MVP 22 - Account Merge Rules (Basic + Google)
+
+Implement automatic account linking when Basic user signs in with Google.
+
+### Tasks
+- [x] Implement `signIn` callback logic to detect existing user by email when Google sign-in.
+- [x] Link Google account to existing Basic user (create `Account` record with provider="google").
+- [x] Ensure merge only happens for verified Google emails.
+- [x] Preserve user's existing data (name, status, admin flag) during merge.
+- [x] Ensure DISABLED users cannot complete merge/sign-in.
+- [x] Update `authMethod` field appropriately after merge scenarios.
+- [x] Add tests for account merge behavior.
+- [x] Add tests for edge cases (disabled user, existing Google account).
+
+## MVP 23 - Profile Edit Restrictions by Auth Method
+
+Restrict profile editing based on registration method.
+
+### Tasks
+- [x] Extend session/user type to include `authMethod` from database.
+- [x] Backend: prevent password changes for Google-origin users.
+- [x] Backend: prevent email changes for all users.
+- [x] Backend: prevent name changes for Google-origin users.
+- [x] Backend: allow password and name changes for Basic-origin users.
+- [x] Frontend: disable/hide restricted fields in profile form based on auth method.
+- [x] Add clear messaging explaining restrictions.
+- [x] Update profile API types to include `authMethod`.
+- [x] Add tests for profile restriction logic (API and UI).
+- [x] Add tests for session callback authMethod inclusion.
+
+## MVP 24 - Tests and Coverage Safeguards
+
+Ensure comprehensive test coverage for all new functionality.
+
+### Tasks
+- [x] Frontend tests: `/signup` access and redirect behavior.
+- [x] Frontend tests: AuthCard conditional Google/Basic visibility.
+- [x] Frontend tests: Google settings form (toggle, configured view, change flow, URLs).
+- [x] Frontend tests: Profile UI restrictions by auth method.
+- [x] Frontend tests: Registration API behavior when Basic Auth disabled.
+- [x] API tests: Settings routes for new fields and encrypted credentials.
+- [x] API tests: Profile route restrictions by auth method.
+- [x] API tests: Account merge/link behavior.
+- [x] API tests: Encryption/decryption utility.
+- [x] Run `bun run --cwd front test` and ensure all pass.
+- [x] Run `bun run --cwd api test` and ensure all pass.
+- [x] Run `bun run --cwd front typecheck`.
+- [x] Run `bun run --cwd api typecheck`.
+- [x] Run `bun run test` (root).
+- [x] Run `bun run coverage` and confirm thresholds >= 80%.
+
+## MVP 25 - Documentation Updates
+
+Update documentation for new auth features.
+
+### Tasks
+- [x] Update README.md with auth configuration section.
+- [x] Document `AUTH_ENCRYPTION_KEY` environment variable requirement.
+- [x] Document new AppSettings fields and their purposes.
+- [x] Add guidance for Google OAuth setup with Allow/Redirect URLs.
+- [x] Document account merge behavior and security considerations.
+- [x] Document profile restriction rules by auth method.
+- [x] Add operational notes for credential rotation.

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { findUnique, create, hash, appSettingsFindUnique } = vi.hoisted(() => ({
+const { findUnique, create, hash, appSettingsFindUnique, workspaceCreate, workspaceMemberCreate } = vi.hoisted(() => ({
   findUnique: vi.fn(),
   create: vi.fn(),
   hash: vi.fn(),
   appSettingsFindUnique: vi.fn(),
+  workspaceCreate: vi.fn(),
+  workspaceMemberCreate: vi.fn(),
 }))
 
 vi.mock("@/lib/prisma", () => ({
@@ -16,6 +18,13 @@ vi.mock("@/lib/prisma", () => ({
     appSettings: {
       findUnique: appSettingsFindUnique,
     },
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+      return fn({
+        user: { create },
+        workspace: { create: workspaceCreate },
+        workspaceMember: { create: workspaceMemberCreate },
+      })
+    }),
   },
 }))
 
@@ -31,12 +40,15 @@ describe("register route", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     appSettingsFindUnique.mockResolvedValue({
+      basicAuthEnabled: true,
       passwordMinLength: 8,
       requireSpecial: false,
       requireNumber: false,
       requireUppercase: false,
       requireLowercase: false,
     })
+    workspaceCreate.mockResolvedValue({ id: "ws-1", name: "Test workspace", ownerId: "1", isDefault: true })
+    workspaceMemberCreate.mockResolvedValue({ id: "m-1", workspaceId: "ws-1", userId: "1" })
   })
 
   it("creates user from valid payload", async () => {
@@ -51,6 +63,8 @@ describe("register route", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
+    workspaceCreate.mockResolvedValue({ id: "ws-1", name: "Jane's workspace", ownerId: "1", isDefault: true })
+    workspaceMemberCreate.mockResolvedValue({ id: "m-1", workspaceId: "ws-1", userId: "1" })
 
     const response = await POST(
       new Request("http://localhost/api/register", {
@@ -87,6 +101,7 @@ describe("register route", () => {
 
   it("validates password length from settings", async () => {
     appSettingsFindUnique.mockResolvedValue({
+      basicAuthEnabled: true,
       passwordMinLength: 12,
       requireSpecial: false,
       requireNumber: false,
@@ -112,6 +127,7 @@ describe("register route", () => {
 
   it("validates password requirements from settings", async () => {
     appSettingsFindUnique.mockResolvedValue({
+      basicAuthEnabled: true,
       passwordMinLength: 8,
       requireSpecial: true,
       requireNumber: true,
@@ -133,5 +149,30 @@ describe("register route", () => {
     )
 
     expect(response.status).toBe(400)
+  })
+
+  it("returns 403 when basic auth is disabled", async () => {
+    appSettingsFindUnique.mockResolvedValue({
+      basicAuthEnabled: false,
+      passwordMinLength: 8,
+      requireSpecial: false,
+      requireNumber: false,
+      requireUppercase: false,
+      requireLowercase: false,
+    })
+
+    const response = await POST(
+      new Request("http://localhost/api/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Jane",
+          email: "jane@example.com",
+          password: "password123",
+        }),
+      }),
+    )
+
+    expect(response.status).toBe(403)
   })
 })

@@ -8,14 +8,62 @@ type InMemoryUser = {
   email: string
   status: "ENABLED" | "DISABLED"
   admin: boolean
+  authMethod: "BASIC" | "GOOGLE"
   createdAt: Date
   updatedAt: Date
 }
 
 const users: InMemoryUser[] = []
+const workspaces: { id: string; name: string; ownerId: string; isDefault: boolean }[] = []
+const members: { id: string; workspaceId: string; userId: string }[] = []
 
 vi.mock("@/lib/db", () => {
   const prisma = {
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+      return fn({
+        user: {
+          create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+            const duplicate = users.find((u) => u.email === data.email)
+            if (duplicate) throw new Error("Unique constraint")
+            const created: InMemoryUser = {
+              id: crypto.randomUUID(),
+              name: data.name as string,
+              email: data.email as string,
+              status: (data.status as "ENABLED" | "DISABLED") ?? "ENABLED",
+              admin: (data.admin as boolean) ?? false,
+              authMethod: (data.authMethod as "BASIC" | "GOOGLE") ?? "BASIC",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }
+            users.unshift(created)
+            return created
+          }),
+        },
+        workspace: {
+          create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+            const ws = { id: crypto.randomUUID(), name: data.name as string, ownerId: data.ownerId as string, isDefault: (data.isDefault as boolean) ?? false }
+            workspaces.push(ws)
+            return ws
+          }),
+        },
+        workspaceMember: {
+          create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+            const member = { id: crypto.randomUUID(), workspaceId: data.workspaceId as string, userId: data.userId as string }
+            members.push(member)
+            return member
+          }),
+        },
+      })
+    }),
+    workspace: {
+      create: vi.fn(),
+    },
+    workspaceMember: {
+      create: vi.fn(),
+    },
+    appSettings: {
+      findUnique: vi.fn(async () => null),
+    },
     user: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const duplicate = users.find((user) => user.email === data.email)
@@ -28,6 +76,7 @@ vi.mock("@/lib/db", () => {
           email: data.email as string,
           status: (data.status as "ENABLED" | "DISABLED") ?? "ENABLED",
           admin: (data.admin as boolean) ?? false,
+          authMethod: (data.authMethod as "BASIC" | "GOOGLE") ?? "BASIC",
           createdAt: new Date(),
           updatedAt: new Date(),
         }
@@ -98,6 +147,8 @@ function authHeaders(extra: Record<string, string> = {}): Record<string, string>
 describe("api", () => {
   beforeEach(() => {
     users.length = 0
+    workspaces.length = 0
+    members.length = 0
   })
 
   it("returns health status", async () => {

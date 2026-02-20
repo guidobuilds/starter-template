@@ -8,15 +8,12 @@ import React from "react"
 const tabs = [
   { name: "General", href: "/admin/settings/general" },
   { name: "Authentication", href: "/admin/settings/auth/basic" },
+  { name: "Workspaces", href: "/admin/settings/workspaces" },
 ]
 
 export function SettingsLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAuthRoute = pathname.startsWith("/admin/settings/auth")
-
-  if (isAuthRoute) {
-    return <div className="p-4 sm:p-6">{children}</div>
-  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -29,7 +26,7 @@ export function SettingsLayoutClient({ children }: { children: React.ReactNode }
           <TabNavigationLink
             key={tab.name}
             asChild
-            active={pathname.startsWith(tab.href) || (tab.name === "Authentication" && pathname.startsWith("/admin/settings/auth"))}
+            active={pathname.startsWith(tab.href) || (tab.name === "Authentication" && isAuthRoute)}
           >
             <Link href={tab.href}>{tab.name}</Link>
           </TabNavigationLink>

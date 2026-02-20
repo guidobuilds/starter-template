@@ -17,8 +17,8 @@ import { RiArrowDownSFill } from "@remixicon/react"
 import { BarChart3, Home, Monitor, FileText, Settings, Shield, Users } from "lucide-react"
 import { usePathname } from "next/navigation"
 import * as React from "react"
-import { Logo } from "../../../../public/Logo"
 import { UserProfile } from "./UserProfile"
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
 
 type NavItem = {
   name: string
@@ -59,13 +59,13 @@ const navigation: NavItem[] = [
 ]
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
-  instanceName?: string | null
+  activeWorkspaceId?: string
   isAdmin?: boolean
   userName?: string | null
   userEmail?: string | null
 }
 
-export function AppSidebar({ instanceName, isAdmin = false, userName, userEmail, ...props }: AppSidebarProps) {
+export function AppSidebar({ activeWorkspaceId, isAdmin = false, userName, userEmail, ...props }: AppSidebarProps) {
   const pathname = usePathname()
 
   const [openMenus, setOpenMenus] = React.useState<string[]>(
@@ -94,20 +94,8 @@ export function AppSidebar({ instanceName, isAdmin = false, userName, userEmail,
 
   return (
     <Sidebar {...props} className="bg-gray-50 dark:bg-gray-925">
-      <SidebarHeader className="px-3 py-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-9 items-center justify-center rounded-md bg-white p-1.5 shadow-xs ring-1 ring-gray-200 dark:bg-gray-900 dark:ring-gray-800">
-            <Logo className="size-6 text-blue-500 dark:text-blue-500" />
-          </span>
-          <div>
-            <span className="block text-sm font-semibold text-gray-900 dark:text-gray-50">
-              {instanceName || "B2B Starter"}
-            </span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400">
-              {isAdmin ? "Admin" : "Dashboard"}
-            </span>
-          </div>
-        </div>
+      <SidebarHeader className="px-3 py-3">
+        <WorkspaceSwitcher activeWorkspaceId={activeWorkspaceId} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

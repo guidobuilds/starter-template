@@ -49,6 +49,7 @@
     "react-day-picker": "8.10.1",
     "react-dom": "19.0.0",
     "recharts": "^2.15.4",
+    "resend": "^6.9.2",
     "server-only": "^0.0.1",
     "tailwind-merge": "^2.6.0",
     "tailwind-variants": "^0.3.1",
@@ -73,6 +74,9 @@
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "prisma": {
+    "schema": "../api/prisma/schema.prisma"
   },
   "pnpm": {
     "overrides": {

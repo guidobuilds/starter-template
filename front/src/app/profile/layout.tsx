@@ -5,29 +5,6 @@ import { Breadcrumbs } from "@/components/ui/navigation/Breadcrumbs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-const API_BASE = process.env.API_INTERNAL_URL ?? "http://localhost:3001"
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY
-
-async function getInstanceName(): Promise<string | null> {
-  try {
-    const headers: HeadersInit = {}
-    if (INTERNAL_API_KEY) {
-      headers["x-internal-api-key"] = INTERNAL_API_KEY
-    }
-    const response = await fetch(`${API_BASE}/v1/settings`, {
-      headers,
-      cache: "no-store",
-    })
-    if (response.ok) {
-      const data = (await response.json()) as { instanceName?: string | null }
-      return data.instanceName ?? null
-    }
-  } catch {
-    // ignore
-  }
-  return null
-}
-
 export default async function ProfileLayout({
   children,
 }: {
@@ -40,12 +17,12 @@ export default async function ProfileLayout({
 
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
-  const instanceName = await getInstanceName()
+  const activeWorkspaceId = cookieStore.get("workspace:active")?.value
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar
-        instanceName={instanceName}
+        activeWorkspaceId={activeWorkspaceId}
         isAdmin={session.user.admin ?? false}
         userName={session.user.name}
         userEmail={session.user.email}

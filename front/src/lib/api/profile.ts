@@ -3,13 +3,13 @@ export type UserProfile = {
   name: string
   email: string
   image: string | null
+  authMethod: "BASIC" | "GOOGLE"
   createdAt: string
   updatedAt: string
 }
 
 export type UpdateProfilePayload = {
   name?: string
-  email?: string
 }
 
 export type UpdatePasswordPayload = {

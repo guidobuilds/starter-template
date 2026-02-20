@@ -23,16 +23,28 @@ vi.mock("next-auth/react", () => ({
 describe("AuthCard", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ basicAuthEnabled: true, googleAuthEnabled: true }),
+      }),
+    )
   })
 
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
   })
 
   it("redirects to / after successful credentials sign in", async () => {
     mockSignIn.mockResolvedValue({ error: undefined })
 
     render(<AuthCard />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Email")).toBeInTheDocument()
+    })
 
     const emailInput = screen.getByPlaceholderText("Email")
     const passwordInput = screen.getByPlaceholderText("Password (8+ chars)")
@@ -64,6 +76,10 @@ describe("AuthCard", () => {
 
     render(<AuthCard />)
 
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Email")).toBeInTheDocument()
+    })
+
     const emailInput = screen.getByPlaceholderText("Email")
     const passwordInput = screen.getByPlaceholderText("Password (8+ chars)")
     const submitButton = screen.getByRole("button", { name: /sign in with email/i })
@@ -79,12 +95,53 @@ describe("AuthCard", () => {
     expect(mockPush).not.toHaveBeenCalled()
   })
 
-  it("calls signIn with google and callbackUrl /login", () => {
+  it("calls signIn with google and callbackUrl /", async () => {
     render(<AuthCard />)
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument()
+    })
 
     const googleButton = screen.getByRole("button", { name: /continue with google/i })
     fireEvent.click(googleButton)
 
-    expect(mockSignIn).toHaveBeenCalledWith("google", { callbackUrl: "/login" })
+    expect(mockSignIn).toHaveBeenCalledWith("google", { callbackUrl: "/" })
+  })
+
+  it("hides google button when googleAuthEnabled is false", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ basicAuthEnabled: true, googleAuthEnabled: false }),
+      }),
+    )
+
+    render(<AuthCard />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Email")).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole("button", { name: /continue with google/i })).not.toBeInTheDocument()
+  })
+
+  it("hides basic auth form when basicAuthEnabled is false", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ basicAuthEnabled: false, googleAuthEnabled: true }),
+      }),
+    )
+
+    render(<AuthCard />)
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument()
+    })
+
+    expect(screen.queryByPlaceholderText("Email")).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText("Password (8+ chars)")).not.toBeInTheDocument()
   })
 })

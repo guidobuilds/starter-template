@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.stubEnv("INTERNAL_API_KEY", "test-api-key")
+vi.stubEnv("AUTH_ENCRYPTION_KEY", "test-encryption-key-32-bytes-long!!")
 
 type SettingsRecord = {
   id: string
@@ -10,8 +11,13 @@ type SettingsRecord = {
   requireNumber: boolean
   requireUppercase: boolean
   requireLowercase: boolean
+  basicAuthEnabled: boolean
+  googleAuthEnabled: boolean
   googleClientId: string | null
   googleClientSecret: string | null
+  googleClientIdEncrypted: string | null
+  googleClientSecretEncrypted: string | null
+  googleCredentialsIv: string | null
   createdAt?: Date
   updatedAt?: Date
 }
@@ -33,8 +39,13 @@ vi.mock("@/lib/db", () => {
           requireNumber: (data.requireNumber as boolean) ?? false,
           requireUppercase: (data.requireUppercase as boolean) ?? false,
           requireLowercase: (data.requireLowercase as boolean) ?? false,
+          basicAuthEnabled: (data.basicAuthEnabled as boolean) ?? true,
+          googleAuthEnabled: (data.googleAuthEnabled as boolean) ?? false,
           googleClientId: (data.googleClientId as string | null) ?? null,
           googleClientSecret: (data.googleClientSecret as string | null) ?? null,
+          googleClientIdEncrypted: (data.googleClientIdEncrypted as string | null) ?? null,
+          googleClientSecretEncrypted: (data.googleClientSecretEncrypted as string | null) ?? null,
+          googleCredentialsIv: (data.googleCredentialsIv as string | null) ?? null,
           createdAt: new Date(),
           updatedAt: new Date(),
         }
@@ -55,8 +66,13 @@ vi.mock("@/lib/db", () => {
           requireNumber: (create.requireNumber as boolean) ?? false,
           requireUppercase: (create.requireUppercase as boolean) ?? false,
           requireLowercase: (create.requireLowercase as boolean) ?? false,
+          basicAuthEnabled: (create.basicAuthEnabled as boolean) ?? true,
+          googleAuthEnabled: (create.googleAuthEnabled as boolean) ?? false,
           googleClientId: (create.googleClientId as string | null) ?? null,
           googleClientSecret: (create.googleClientSecret as string | null) ?? null,
+          googleClientIdEncrypted: (create.googleClientIdEncrypted as string | null) ?? null,
+          googleClientSecretEncrypted: (create.googleClientSecretEncrypted as string | null) ?? null,
+          googleCredentialsIv: (create.googleCredentialsIv as string | null) ?? null,
           createdAt: new Date(),
           updatedAt: new Date(),
         }
@@ -92,6 +108,9 @@ describe("settings api", () => {
     const data = (await response.json()) as Record<string, unknown>
     expect(data.instanceName).toBeNull()
     expect(data.passwordMinLength).toBe(8)
+    expect(data.basicAuthEnabled).toBe(true)
+    expect(data.googleAuthEnabled).toBe(false)
+    expect(data.googleConfigured).toBe(false)
   })
 
   it("updates general settings", async () => {
@@ -121,17 +140,59 @@ describe("settings api", () => {
     expect(data.requireSpecial).toBe(true)
   })
 
-  it("updates google auth settings", async () => {
+  it("updates basicAuthEnabled setting", async () => {
     const patch = await app.handle(
-      new Request("http://localhost/v1/settings/auth/google", {
+      new Request("http://localhost/v1/settings/auth/basic", {
         method: "PATCH",
         headers: authHeaders({ "content-type": "application/json" }),
-        body: JSON.stringify({ googleClientId: "my-client-id" }),
+        body: JSON.stringify({ basicAuthEnabled: false }),
       }),
     )
     expect(patch.status).toBe(200)
     const data = (await patch.json()) as Record<string, unknown>
-    expect(data.googleClientId).toBe("my-client-id")
+    expect(data.basicAuthEnabled).toBe(false)
+  })
+
+  it("updates googleAuthEnabled setting", async () => {
+    const patch = await app.handle(
+      new Request("http://localhost/v1/settings/auth/google", {
+        method: "PATCH",
+        headers: authHeaders({ "content-type": "application/json" }),
+        body: JSON.stringify({ googleAuthEnabled: true }),
+      }),
+    )
+    expect(patch.status).toBe(200)
+    const data = (await patch.json()) as Record<string, unknown>
+    expect(data.googleAuthEnabled).toBe(true)
+  })
+
+  it("stores encrypted google credentials", async () => {
+    const patch = await app.handle(
+      new Request("http://localhost/v1/settings/auth/google", {
+        method: "PATCH",
+        headers: authHeaders({ "content-type": "application/json" }),
+        body: JSON.stringify({
+          googleClientId: "my-client-id.apps.googleusercontent.com",
+          googleClientSecret: "my-client-secret",
+        }),
+      }),
+    )
+    expect(patch.status).toBe(200)
+    const data = (await patch.json()) as Record<string, unknown>
+    expect(data.googleConfigured).toBe(true)
+  })
+
+  it("returns auth config", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/v1/settings/auth/config", {
+        headers: authHeaders(),
+      }),
+    )
+    expect(response.status).toBe(200)
+    const data = (await response.json()) as Record<string, unknown>
+    expect(data.basicAuthEnabled).toBe(true)
+    expect(data.googleAuthEnabled).toBe(false)
+    expect(data.googleConfigured).toBe(false)
   })
 
   it("validates general settings payload", async () => {

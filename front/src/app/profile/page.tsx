@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Tabs"
 import { getProfile, updateProfile, updatePassword } from "@/lib/api/profile"
 import React from "react"
 
+type AuthMethod = "BASIC" | "GOOGLE"
+
 export default function ProfilePage() {
   const [name, setName] = React.useState("")
   const [email, setEmail] = React.useState("")
@@ -19,12 +21,16 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = React.useState<string | null>(null)
   const [profileSuccess, setProfileSuccess] = React.useState(false)
   const [passwordSuccess, setPasswordSuccess] = React.useState(false)
+  const [authMethod, setAuthMethod] = React.useState<AuthMethod>("BASIC")
+
+  const isGoogleUser = authMethod === "GOOGLE"
 
   React.useEffect(() => {
     getProfile()
       .then((profile) => {
         setName(profile.name)
         setEmail(profile.email)
+        setAuthMethod((profile as { authMethod?: AuthMethod }).authMethod ?? "BASIC")
         setLoading(false)
       })
       .catch(() => {
@@ -42,7 +48,6 @@ export default function ProfilePage() {
     try {
       await updateProfile({
         name: name.trim() || undefined,
-        email: email.trim() || undefined,
       })
       setProfileSuccess(true)
     } catch (err) {
@@ -104,20 +109,19 @@ export default function ProfilePage() {
                 Email
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                Update your email address associated with this account.
+                Email address cannot be changed.
               </p>
               <div className="mt-6">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Update email address
+                  Email address
                 </label>
                 <Input
                   type="email"
                   id="email"
                   name="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john@company.com"
-                  className="mt-2 w-full sm:max-w-lg"
+                  disabled
+                  className="mt-2 w-full sm:max-w-lg cursor-not-allowed opacity-60"
                 />
               </div>
               <div className="mt-4">
@@ -131,8 +135,14 @@ export default function ProfilePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
-                  className="mt-2 w-full sm:max-w-lg"
+                  disabled={isGoogleUser}
+                  className={`mt-2 w-full sm:max-w-lg ${isGoogleUser ? "cursor-not-allowed opacity-60" : ""}`}
                 />
+                {isGoogleUser && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Google users cannot change their display name.
+                  </p>
+                )}
               </div>
               {profileError && (
                 <p className="mt-4 text-sm text-rose-600 dark:text-rose-400">{profileError}</p>
@@ -140,58 +150,71 @@ export default function ProfilePage() {
               {profileSuccess && (
                 <p className="mt-4 text-sm text-green-600 dark:text-green-400">Profile updated.</p>
               )}
-              <Button type="submit" className="mt-6" disabled={savingProfile}>
-                {savingProfile ? "Saving..." : "Update profile"}
-              </Button>
+              {!isGoogleUser && (
+                <Button type="submit" className="mt-6" disabled={savingProfile}>
+                  {savingProfile ? "Saving..." : "Update profile"}
+                </Button>
+              )}
             </form>
 
             <Divider />
 
-            <form onSubmit={handlePasswordSubmit}>
-              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-                Password
-              </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                Update your password associated with this account.
-              </p>
-              <div className="mt-6">
-                <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Current password
-                </label>
-                <Input
-                  type="password"
-                  id="current-password"
-                  name="current-password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  className="mt-2 w-full sm:max-w-lg"
-                />
+            {isGoogleUser ? (
+              <div>
+                <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+                  Password
+                </h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+                  Google users authenticate via Google and do not have a password set.
+                </p>
               </div>
-              <div className="mt-4">
-                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  New password
-                </label>
-                <Input
-                  type="password"
-                  id="new-password"
-                  name="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  className="mt-2 w-full sm:max-w-lg"
-                />
-              </div>
-              {passwordError && (
-                <p className="mt-4 text-sm text-rose-600 dark:text-rose-400">{passwordError}</p>
-              )}
-              {passwordSuccess && (
-                <p className="mt-4 text-sm text-green-600 dark:text-green-400">Password updated.</p>
-              )}
-              <Button type="submit" className="mt-6" disabled={savingPassword}>
-                {savingPassword ? "Updating..." : "Update password"}
-              </Button>
-            </form>
+            ) : (
+              <form onSubmit={handlePasswordSubmit}>
+                <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+                  Password
+                </h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+                  Update your password associated with this account.
+                </p>
+                <div className="mt-6">
+                  <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Current password
+                  </label>
+                  <Input
+                    type="password"
+                    id="current-password"
+                    name="current-password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    className="mt-2 w-full sm:max-w-lg"
+                  />
+                </div>
+                <div className="mt-4">
+                  <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    New password
+                  </label>
+                  <Input
+                    type="password"
+                    id="new-password"
+                    name="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="mt-2 w-full sm:max-w-lg"
+                  />
+                </div>
+                {passwordError && (
+                  <p className="mt-4 text-sm text-rose-600 dark:text-rose-400">{passwordError}</p>
+                )}
+                {passwordSuccess && (
+                  <p className="mt-4 text-sm text-green-600 dark:text-green-400">Password updated.</p>
+                )}
+                <Button type="submit" className="mt-6" disabled={savingPassword}>
+                  {savingPassword ? "Updating..." : "Update password"}
+                </Button>
+              </form>
+            )}
           </div>
         </TabsContent>
       </Tabs>

@@ -11,6 +11,7 @@ export function BasicAuthSettingsForm() {
   const [requireNumber, setRequireNumber] = React.useState(false)
   const [requireUppercase, setRequireUppercase] = React.useState(false)
   const [requireLowercase, setRequireLowercase] = React.useState(false)
+  const [basicAuthEnabled, setBasicAuthEnabled] = React.useState(true)
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -24,6 +25,7 @@ export function BasicAuthSettingsForm() {
         setRequireNumber(settings.requireNumber)
         setRequireUppercase(settings.requireUppercase)
         setRequireLowercase(settings.requireLowercase)
+        setBasicAuthEnabled(settings.basicAuthEnabled)
         setLoading(false)
       })
       .catch(() => {
@@ -45,6 +47,7 @@ export function BasicAuthSettingsForm() {
         requireNumber,
         requireUppercase,
         requireLowercase,
+        basicAuthEnabled,
       })
       setSuccess(true)
     } catch {
@@ -60,6 +63,21 @@ export function BasicAuthSettingsForm() {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="mb-4">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            checked={basicAuthEnabled}
+            onChange={(e) => setBasicAuthEnabled(e.target.checked)}
+            className="h-4 w-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          Enable Basic authentication (email/password)
+        </label>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          When disabled, users cannot register or sign in with email and password.
+        </p>
+      </div>
+
       <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Password requirements</h4>
       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
         These rules apply when users register or change their password.

@@ -5,21 +5,82 @@ import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
+import { decrypt, isEncryptionConfigured } from "@/lib/crypto"
 
 const credentialsSchema = z.object({
   email: z.email(),
   password: z.string().min(8),
 })
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustHost: true,
-  adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+async function getGoogleCredentials(): Promise<{
+  clientId: string | null
+  clientSecret: string | null
+}> {
+  const settings = await prisma.appSettings.findUnique({
+    where: { id: "default" },
+    select: {
+      googleAuthEnabled: true,
+      googleClientIdEncrypted: true,
+      googleClientSecretEncrypted: true,
+      googleCredentialsIv: true,
+      googleClientId: true,
+      googleClientSecret: true,
+    },
+  })
+
+  if (!settings?.googleAuthEnabled) {
+    return { clientId: null, clientSecret: null }
+  }
+
+  if (settings.googleClientIdEncrypted && settings.googleCredentialsIv) {
+    if (!isEncryptionConfigured()) {
+      console.warn("AUTH_ENCRYPTION_KEY not set, cannot decrypt Google credentials")
+      return { clientId: null, clientSecret: null }
+    }
+
+    try {
+      const clientId = decrypt(
+        settings.googleClientIdEncrypted,
+        settings.googleCredentialsIv
+      )
+      const clientSecret = settings.googleClientSecretEncrypted
+        ? decrypt(
+            settings.googleClientSecretEncrypted,
+            settings.googleCredentialsIv
+          )
+        : null
+
+      return { clientId, clientSecret }
+    } catch (error) {
+      console.error("Failed to decrypt Google credentials:", error)
+      return { clientId: null, clientSecret: null }
+    }
+  }
+
+  if (settings.googleClientId && settings.googleClientSecret) {
+    return {
+      clientId: settings.googleClientId,
+      clientSecret: settings.googleClientSecret,
+    }
+  }
+
+  return { clientId: null, clientSecret: null }
+}
+
+async function getProviders() {
+  const googleCreds = await getGoogleCredentials()
+  const providers = []
+
+  if (googleCreds.clientId && googleCreds.clientSecret) {
+    providers.push(
+      Google({
+        clientId: googleCreds.clientId,
+        clientSecret: googleCreds.clientSecret,
+      })
+    )
+  }
+
+  providers.push(
     Credentials({
       name: "Email and Password",
       credentials: {
@@ -52,18 +113,65 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           image: user.image,
         }
       },
-    }),
-  ],
+    })
+  )
+
+  return providers
+}
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+  adapter: PrismaAdapter(prisma),
+  session: { strategy: "jwt" },
+  providers: await getProviders(),
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (!user.email) {
         return false
       }
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email } })
+
+      if (account?.provider === "google") {
+        const settings = await prisma.appSettings.findUnique({
+          where: { id: "default" },
+          select: { googleAuthEnabled: true },
+        })
+
+        if (!settings?.googleAuthEnabled) {
+          return false
+        }
+      }
+
+      const dbUser = await prisma.user.findUnique({ 
+        where: { email: user.email },
+        select: { id: true, status: true, authMethod: true, passwordHash: true },
+      })
+      
       if (!dbUser) {
         return true
       }
-      return dbUser.status === "ENABLED"
+
+      if (dbUser.status === "DISABLED") {
+        return false
+      }
+
+      if (account?.provider === "google" && dbUser.authMethod === "BASIC") {
+        await prisma.account.create({
+          data: {
+            userId: dbUser.id,
+            type: "oauth",
+            provider: "google",
+            providerAccountId: account.providerAccountId,
+            access_token: account.access_token,
+            refresh_token: account.refresh_token,
+            expires_at: account.expires_at,
+            token_type: account.token_type,
+            scope: account.scope,
+            id_token: account.id_token,
+          },
+        }).catch(() => {})
+      }
+
+      return true
     },
     async jwt({ token, user }) {
       if (user) {
@@ -78,10 +186,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const dbUser = token.email
           ? await prisma.user.findUnique({
               where: { email: token.email as string },
-              select: { admin: true },
+              select: { admin: true, authMethod: true },
             })
           : null
         session.user.admin = dbUser?.admin ?? false
+        ;(session.user as { authMethod?: string }).authMethod = dbUser?.authMethod ?? "BASIC"
       }
       return session
     },

@@ -12,20 +12,36 @@ enum UserStatus {
   DISABLED
 }
 
+enum AuthMethod {
+  BASIC
+  GOOGLE
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String
-  email         String    @unique
+  email         String     @unique
   emailVerified DateTime?
   image         String?
   passwordHash  String?
   status        UserStatus @default(ENABLED)
-  admin         Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  admin         Boolean    @default(false)
+  authMethod    AuthMethod @default(BASIC)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   accounts Account[]
   sessions Session[]
+
+  ownedWorkspaces      Workspace[]           @relation("OwnedWorkspaces")
+  workspaceMemberships WorkspaceMember[]     @relation("WorkspaceMemberships")
+  sentInvitations      WorkspaceInvitation[] @relation("SentInvitations")
 }
 
 model Account {
@@ -68,15 +84,64 @@ model VerificationToken {
 }
 
 model AppSettings {
-  id                  String   @id @default("default")
-  instanceName        String?
-  passwordMinLength   Int      @default(8)
-  requireSpecial      Boolean  @default(false)
-  requireNumber       Boolean  @default(false)
-  requireUppercase    Boolean  @default(false)
-  requireLowercase    Boolean  @default(false)
-  googleClientId      String?
-  googleClientSecret  String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                         String   @id @default("default")
+  instanceName               String?
+  passwordMinLength          Int      @default(8)
+  requireSpecial             Boolean  @default(false)
+  requireNumber              Boolean  @default(false)
+  requireUppercase           Boolean  @default(false)
+  requireLowercase           Boolean  @default(false)
+  basicAuthEnabled           Boolean  @default(true)
+  googleAuthEnabled          Boolean  @default(false)
+  googleClientId             String?
+  googleClientSecret         String?
+  googleClientIdEncrypted     String?
+  googleClientSecretEncrypted String?
+  googleCredentialsIv         String?
+  workspacesEnabled           Boolean  @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner       User                  @relation("OwnedWorkspaces", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     WorkspaceMember[]
+  invitations WorkspaceInvitation[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation("WorkspaceMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model WorkspaceInvitation {
+  id          String           @id @default(cuid())
+  email       String
+  workspaceId String
+  invitedById String
+  token       String           @unique @default(cuid())
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
 }

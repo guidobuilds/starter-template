@@ -3,6 +3,7 @@ import { Elysia } from "elysia"
 import { usersRoutes } from "@/routes/users"
 import { settingsRoutes } from "@/routes/settings"
 import { profileRoutes } from "@/routes/profile"
+import { workspacesRoutes } from "@/routes/workspaces"
 
 export const app = new Elysia()
   .use(
@@ -28,6 +29,6 @@ export const app = new Elysia()
     }
   })
   .get("/health", () => ({ status: "ok" }))
-  .group("/v1", (v1) => v1.use(usersRoutes).use(settingsRoutes).use(profileRoutes))
+  .group("/v1", (v1) => v1.use(usersRoutes).use(settingsRoutes).use(profileRoutes).use(workspacesRoutes))
 
 export type App = typeof app

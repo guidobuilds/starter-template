@@ -5,8 +5,12 @@ export type AppSettings = {
   requireNumber: boolean
   requireUppercase: boolean
   requireLowercase: boolean
+  basicAuthEnabled: boolean
+  googleAuthEnabled: boolean
+  googleConfigured: boolean
   googleClientId: string | null
   googleClientSecret: string | null
+  workspacesEnabled: boolean
   createdAt: string
   updatedAt: string
 }
@@ -21,9 +25,11 @@ export type BasicAuthSettingsPayload = {
   requireNumber?: boolean
   requireUppercase?: boolean
   requireLowercase?: boolean
+  basicAuthEnabled?: boolean
 }
 
 export type GoogleAuthSettingsPayload = {
+  googleAuthEnabled?: boolean
   googleClientId?: string | null
   googleClientSecret?: string | null
 }
@@ -60,6 +66,7 @@ export async function updateBasicAuthSettings(
   requireNumber: boolean
   requireUppercase: boolean
   requireLowercase: boolean
+  basicAuthEnabled: boolean
   updatedAt: string
 }> {
   const response = await fetch("/api/settings/auth/basic", {
@@ -75,7 +82,7 @@ export async function updateBasicAuthSettings(
 
 export async function updateGoogleAuthSettings(
   payload: GoogleAuthSettingsPayload,
-): Promise<{ googleClientId: string | null; googleClientSecret: string | null; updatedAt: string }> {
+): Promise<{ googleAuthEnabled: boolean; googleConfigured: boolean; updatedAt: string }> {
   const response = await fetch("/api/settings/auth/google", {
     method: "PATCH",
     headers: { "content-type": "application/json" },
@@ -83,6 +90,20 @@ export async function updateGoogleAuthSettings(
   })
   if (!response.ok) {
     throw new Error("Failed to update google auth settings")
+  }
+  return response.json()
+}
+
+export async function updateWorkspaceSettings(payload: {
+  workspacesEnabled: boolean
+}): Promise<{ workspacesEnabled: boolean; updatedAt: string }> {
+  const response = await fetch("/api/settings/workspaces", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    throw new Error("Failed to update workspace settings")
   }
   return response.json()
 }

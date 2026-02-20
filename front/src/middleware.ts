@@ -6,8 +6,11 @@ export function middleware(request: NextRequest) {
 
   const isAuthRoute = pathname.startsWith("/api/auth")
   const isRegisterRoute = pathname === "/api/register"
+  const isSignupPage = pathname === "/signup"
+  const isInvitationPage = pathname.startsWith("/invitations")
+  const isInvitationApiRoute = pathname.startsWith("/api/invitations")
 
-  if (isAuthRoute || isRegisterRoute) {
+  if (isAuthRoute || isRegisterRoute || isSignupPage || isInvitationPage || isInvitationApiRoute) {
     return NextResponse.next()
   }
 
